@@ -1,7 +1,10 @@
-import Room from "../components/Room";
+// import Room from "../components/Room";
+
+import Desk from "../components/Desk";
+
 
 function DeskSelection() {
-    return <Room/>;
+    return <Desk/>;
 }
 
 export default DeskSelection;
