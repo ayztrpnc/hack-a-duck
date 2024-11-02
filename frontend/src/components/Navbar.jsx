@@ -9,7 +9,7 @@ function Navbar() {
                 </h1>
                 <div className="space-x-4">
                     <Link to="/" className="text-white hover:text-blue-200">Home</Link>
-                    <Link to="/register-login" className="text-white hover:text-blue-200">Register / Login</Link>
+                    <Link to="/register-login" className="text-white hover:text-blue-200">Login /Register</Link>
                     <Link to="/profile" className="text-white hover:text-blue-200">Profile</Link>
                     <Link to="/room-selection" className="text-white hover:text-blue-200">Room Selection</Link>
                     <Link to="/floors-and-rooms" className="text-white hover:text-blue-200">Floors & Rooms</Link>
