@@ -1,5 +1,7 @@
+import Login from "../components/Login";
+
 function RegisterLogin() {
-    return <h2>Register / Login Page</h2>;
+    return <Login/>;
 }
 
 export default RegisterLogin;

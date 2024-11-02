@@ -9,6 +9,8 @@ import DeskSelection from './pages/DeskSelection';
 import FloorsAndRooms from './pages/FloorsAndRooms';
 import Calendar from './pages/Calendar';
 import Navbar from './components/Navbar';
+import Login from './components/Login';
+import Register2 from './components/Register2';
 
 function App() {
   const [message, setMessage] = useState('');
@@ -28,6 +30,8 @@ function App() {
         <p className="mb-4">Message from Backend: {message}</p>
         <Routes>
           <Route path="/" element={<Home />} />
+          <Route path="/login" element={<Login/>} />
+          <Route path="/register2" element={<Register2 />} />
           <Route path="/register-login" element={<RegisterLogin />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/room-selection" element={<DeskSelection />} />
