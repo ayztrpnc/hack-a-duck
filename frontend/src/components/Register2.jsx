@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import axios from 'axios';
 
 function Register2() {
   // State to hold form values
@@ -13,7 +14,7 @@ function Register2() {
 
 
   // Handle form submission
-  const handleSubmit = (event) => {
+  const handleSubmit = async(event) => {
     event.preventDefault(); // Prevent default form submission
 
       //validate names
@@ -56,12 +57,31 @@ function Register2() {
         }
     }
     if (password !== confirmPassword) {
-      alert("Passwords do not match.");
+      alert("Passwords do not match.");n
       return;
     }
-
-    
     alert("Registration successful!");
+
+    //send data to server
+    
+    try {
+        const response = await axios.post('http://localhost:3000/users/register2', {
+            firstName,
+            lastName,
+            userName,
+            email,
+            password,
+        });
+        alert(response.data.message); // Success message from server
+    } catch (error) {
+        if (error.response) {
+            alert(error.response.data.message); // Error message from server
+        } else {
+            alert('An error occurred');
+        }
+    }
+    
+   
   };
 
   return (
