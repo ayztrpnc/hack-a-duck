@@ -1,67 +1,67 @@
-const express = require("express")
-const router = express.Router()
-const connection = require("../db")
+const express = require("express");
+const bcrypt = require('bcryptjs');
+const jwt = require("jsonwebtoken"); // Make sure to install this package
+const router = express.Router();
+const connection = require("../db");
 
-// Fetch all user data
-router.get('/', (req, res) => {
-    const sqlQuery = "SELECT * FROM User";
-    connection.query(sqlQuery, function(err, result){
-        if (err){throw err;}
-        res.send(result);
-    })
-});
+// User Registration
+router.post('/register2', async (req, res) => {
+    const { firstName, lastName, userName, email, password } = req.body;
+    const roleID = 1;
 
-// Login POST Request
-router.post("/login", (req, res) => {
-    const {username, pword} = req.body;
+    // Hash the password before storing it
+    //const hashedPassword = await bcrypt.hash(password, 10);
 
-    if (pword.length <= 0) {
-        res.status(401).send("Password cannot be empty.");
-        return;
-    }
-    
-    // TODO: More validation
-    const sqlQuery = "SELECT * FROM User WHERE username = ? AND pword = ?";
-    connection.query(sqlQuery, [username, pword], function(err, result) {
+    // Insert the new user into the database
+    const insertQuery = 'INSERT INTO users (roleID, username, pword, firstName, lastName, email) VALUES (?, ?, ?, ?, ?, ?)';
+    connection.query(insertQuery, [roleID, userName, password, firstName, lastName, email], (err, results) => {
         if (err) {
-            res.status(500).send("Error executing the query");
-            return;
+            console.error(err);
+            return res.status(500).json({ message: 'Database error while inserting user' });
         }
 
-        if (result.length > 0) {
-            res.status(200).send("Successfully logged in.");
-        } else {
-            res.status(401).send("Invalid credentials.")
-        }
+        res.status(201).json({ message: 'User registered successfully!' });
     });
 });
 
-// Register POST Request
-router.post("/register", (req, res) => {
-    const {username, pword, firstName, lastName, email} = req.body;
-    const roleID = 1;
+// User Login
+router.post('/register-login', async (req, res) => {
+    const { userName, password } = req.body;
 
-    const checkUserQuery = "SELECT * FROM User WHERE username = ?";
-    connection.query(checkUserQuery, [username], function(err, result) {
+    // Validate input
+    if (!userName || !password) {
+        return res.status(400).json({ message: 'Username and password are required.' });
+    }
+
+    // Check if the user exists
+    const query = 'SELECT * FROM user WHERE username = ?';
+    connection.query(query, [userName], async (err, results) => {
         if (err) {
-            res.status(500).send("Error executing the query.");
-            return;
+            console.error(err);
+            return res.status(500).json({ message: 'Database error' });
         }
-        if (result.length > 0) {
-            res.status(409).send("Username already exists.");
-        } else {
-            const insertUserQuery = "INSERT INTO User(roleID, username, pword, firstName, lastName, email) VALUES (?, ?, ?, ?, ?, ?)";
-            connection.query(insertUserQuery, [roleID, username, pword, firstName, lastName, email],
-                function(err, result) {
-                    if (err) {
-                        res.status(500).send("Error executing the queryy.");
-                        return;
-                    }
-                    res.status(201).send("Registration successful.")
-                }
-            )
+        console.log('Results:', results);
+        if (results.length === 0) {
+            return res.status(401).json({ message: 'Invalid credentials.' }); // User not found
         }
-    })
-})
+
+        const user = results[0];
+
+        // Compare passwords
+        if(password=== user.pword){
+            isPasswordValid=true;
+        };
+        if (!isPasswordValid) {
+            return res.status(401).json({ message: 'Invalid credentials.' });
+        }
+
+        // Create JWT token
+        const token = jwt.sign({ id: user.id, username: user.username }, 'your_secret_key', { expiresIn: '1h' });
+
+        // Send token to client
+        res.json({ token });
+        res.json({ token, message: 'Login successful!' });
+    });
+});
 
 module.exports = router;

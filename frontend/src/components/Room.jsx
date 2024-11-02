@@ -1,23 +1,31 @@
 import React, { useState, useEffect } from 'react';
+import axios from 'axios';
 
 const Room = () => {
-    const initialDesks = [
-        { id: 1, name: "Desk 1", seats: Array(4).fill(false) },
-        { id: 2, name: "Desk 2", seats: Array(4).fill(false) },
-        { id: 3, name: "Desk 3", seats: Array(6).fill(false) }, 
-    ];
-
-    const [desks, setDesks] = useState(initialDesks);
+    const [desks, setDesks] = useState([]);  // Initialize as an empty array for fetched data
     const [bookingDay, setBookingDay] = useState('');
     const [bookingStartTime, setBookingStartTime] = useState('');
     const [bookingEndTime, setBookingEndTime] = useState('');
+    const [selectedSeat, setSelectedSeat] = useState(null);  // Track currently selected seat
+    const [userID, setUserID] = useState(1);  // Placeholder for userID, adjust as needed
 
-    // Load desks from local storage on component mount
+    // Fetch desks data from the API on component mount
     useEffect(() => {
-        const storedDesks = localStorage.getItem('desks');
-        if (storedDesks) {
-            setDesks(JSON.parse(storedDesks));
-        }
+        const fetchDesks = async () => {
+            try {
+                const response = await axios.get('http://localhost:3000/desks');
+                const desksData = response.data.map(desk => ({
+                    id: desk.deskID,
+                    name: desk.deskName,
+                    seats: Array(4).fill(false) // Assuming each desk has 4 seats initially, adjust as needed
+                }));
+                setDesks(desksData);
+            } catch (error) {
+                console.error("Error fetching desks data:", error);
+            }
+        };
+
+        fetchDesks();
     }, []);
 
     // Save desks to local storage whenever they change
@@ -25,32 +33,60 @@ const Room = () => {
         localStorage.setItem('desks', JSON.stringify(desks));
     }, [desks]);
 
-    // Function to toggle booking a seat
+    // Function to handle seat selection
     const toggleSeat = (deskId, seatIndex) => {
-        setDesks(prevDesks =>
-            prevDesks.map(desk =>
-                desk.id === deskId
-                    ? {
-                        ...desk,
-                        seats: desk.seats.map((seat, index) =>
-                            index === seatIndex ? !seat : seat // Toggle the seat
-                        ),
-                    }
-                    : desk
-            )
-        );
+        if (selectedSeat === null) {
+            setSelectedSeat({ deskId, seatIndex });
+        } else if (selectedSeat.deskId === deskId && selectedSeat.seatIndex === seatIndex) {
+            setSelectedSeat(null);
+        }
     };
+    
 
-    // Function to handle the booking for all desks
-    const handleBooking = () => {
-        console.log(`Booking Day: ${bookingDay}, Start Time: ${bookingStartTime}, End Time: ${bookingEndTime}`);
-        alert(`Booking confirmed for ${bookingDay} from ${bookingStartTime} to ${bookingEndTime}`);
+    const handleBooking = async () => {
+        if (selectedSeat !== null && userID) {
+            const { deskId, seatIndex } = selectedSeat;
+            const bookingDetails = {
+                userID: userID, // Ensure this is set correctly
+                deskID: deskId,
+                bookingStart: `${bookingDay}T${bookingStartTime}`,
+                bookingEnd: `${bookingDay}T${bookingEndTime}`,
+                bookingDesc: `Booking for Desk ${deskId}, Seat ${seatIndex + 1}`
+            };
+    
+            console.log("Booking details being sent:", bookingDetails); // Log details to see what you're sending
+    
+            try {
+                const response = await axios.post('http://localhost:3000/booking', bookingDetails);
+                console.log("Booking response:", response.data);
+                // Mark the seat as booked in the local state
+                setDesks(prevDesks =>
+                    prevDesks.map(desk =>
+                        desk.id === deskId
+                            ? {
+                                ...desk,
+                                seats: desk.seats.map((seat, index) =>
+                                    index === seatIndex ? true : seat
+                                ),
+                            }
+                            : desk
+                    )
+                );
+                alert(`Booking confirmed for Desk ${deskId}, Seat ${seatIndex + 1} on ${bookingDay} from ${bookingStartTime} to ${bookingEndTime}`);
+                setSelectedSeat(null);
+            } catch (error) {
+                console.error("Error making booking:", error.response ? error.response.data : error);
+                alert(`There was an error confirming your booking: ${error.response?.data?.message || error.message}. Please try again.`);
+            }
+        } else {
+            alert("Please select a seat and provide your user ID to book.");
+        }
     };
 
     return (
         <div className="p-4">
             <h2 className="text-2xl font-bold mb-4 text-gray-800">Desks</h2>
-            <div className="bg-gray-100 p-6 rounded-lg shadow-lg">
+            <div className="bg-gray-100 p-8 rounded-lg shadow-lg">
                 <div className="flex flex-wrap justify-between">
                     {desks.map((desk) => (
                         <div
@@ -59,125 +95,46 @@ const Room = () => {
                         >
                             <h3 className="text-xl font-semibold text-gray-800">{desk.name}</h3>
                             <div className="mt-2">
-                                {/* Box-style layout for seats with a larger table representation */}
                                 <div className="grid grid-cols-1 gap-2">
-                                    {desk.id === 3 ? (
-                                        // Desk 3 Layout
-                                        <>
-                                            {/* Three Seats Above the Table */}
-                                            <div className="flex justify-between">
+                                    <div className="flex flex-col items-center">
+                                        {/* Top Seats */}
+                                        <div className="flex justify-center space-x-2">
+                                            {desk.seats.slice(0, 2).map((seat, index) => (
                                                 <div
-                                                    onClick={() => toggleSeat(desk.id, 0)}
+                                                    key={index}
+                                                    onClick={() => toggleSeat(desk.id, index)}
                                                     className={`flex items-center justify-center p-3 rounded-lg border transition duration-200 cursor-pointer 
-                                                        ${desk.seats[0] ? 'bg-red-500 border-red-600' : 'bg-green-500 border-green-600'}
+                                                        ${seat ? 'bg-red-500 border-red-600' : (selectedSeat && selectedSeat.deskId === desk.id && selectedSeat.seatIndex === index ? 'bg-gray-400' : 'bg-green-500 border-green-600')}
                                                         hover:opacity-80`}
                                                 >
-                                                    <span className="text-white font-semibold">{desk.seats[0] ? 'Booked' : 'Available'}</span>
+                                                    <span className="text-white font-semibold">{seat ? 'Booked' : 'Available'}</span>
                                                 </div>
+                                            ))}
+                                        </div>
+                                        {/* Table */}
+                                        <div className="w-full h-20 bg-gray-300 rounded-lg shadow-md flex items-center justify-center mt-2 mb-2">
+                                            <span className="text-center block text-gray-600 font-semibold">Table</span>
+                                        </div>
+                                        {/* Bottom Seats */}
+                                        <div className="flex justify-center space-x-2">
+                                            {desk.seats.slice(2).map((seat, index) => (
                                                 <div
-                                                    onClick={() => toggleSeat(desk.id, 1)}
+                                                    key={index + 2} // Adjusting index for the bottom seats
+                                                    onClick={() => toggleSeat(desk.id, index + 2)} // Adding 2 to the index for bottom seats
                                                     className={`flex items-center justify-center p-3 rounded-lg border transition duration-200 cursor-pointer 
-                                                        ${desk.seats[1] ? 'bg-red-500 border-red-600' : 'bg-green-500 border-green-600'}
+                                                        ${seat ? 'bg-red-500 border-red-600' : (selectedSeat && selectedSeat.deskId === desk.id && selectedSeat.seatIndex === index + 2 ? 'bg-gray-400' : 'bg-green-500 border-green-600')}
                                                         hover:opacity-80`}
                                                 >
-                                                    <span className="text-white font-semibold">{desk.seats[1] ? 'Booked' : 'Available'}</span>
+                                                    <span className="text-white font-semibold">{seat ? 'Booked' : 'Available'}</span>
                                                 </div>
-                                                <div
-                                                    onClick={() => toggleSeat(desk.id, 2)}
-                                                    className={`flex items-center justify-center p-3 rounded-lg border transition duration-200 cursor-pointer 
-                                                        ${desk.seats[2] ? 'bg-red-500 border-red-600' : 'bg-green-500 border-green-600'}
-                                                        hover:opacity-80`}
-                                                >
-                                                    <span className="text-white font-semibold">{desk.seats[2] ? 'Booked' : 'Available'}</span>
-                                                </div>
-                                            </div>
-                                            {/* Larger Table Representation */}
-                                            <div className="flex justify-center items-center">
-                                                <div className="w-full h-40 bg-gray-300 rounded-lg shadow-md flex items-center justify-center">
-                                                    <span className="text-center block text-gray-600 font-semibold">Table</span>
-                                                </div>
-                                            </div>
-                                            {/* Three Seats Below the Table */}
-                                            <div className="flex justify-between">
-                                                <div
-                                                    onClick={() => toggleSeat(desk.id, 3)}
-                                                    className={`flex items-center justify-center p-3 rounded-lg border transition duration-200 cursor-pointer 
-                                                        ${desk.seats[3] ? 'bg-red-500 border-red-600' : 'bg-green-500 border-green-600'}
-                                                        hover:opacity-80`}
-                                                >
-                                                    <span className="text-white font-semibold">{desk.seats[3] ? 'Booked' : 'Available'}</span>
-                                                </div>
-                                                <div
-                                                    onClick={() => toggleSeat(desk.id, 4)}
-                                                    className={`flex items-center justify-center p-3 rounded-lg border transition duration-200 cursor-pointer 
-                                                        ${desk.seats[4] ? 'bg-red-500 border-red-600' : 'bg-green-500 border-green-600'}
-                                                        hover:opacity-80`}
-                                                >
-                                                    <span className="text-white font-semibold">{desk.seats[4] ? 'Booked' : 'Available'}</span>
-                                                </div>
-                                                <div
-                                                    onClick={() => toggleSeat(desk.id, 5)}
-                                                    className={`flex items-center justify-center p-3 rounded-lg border transition duration-200 cursor-pointer 
-                                                        ${desk.seats[5] ? 'bg-red-500 border-red-600' : 'bg-green-500 border-green-600'}
-                                                        hover:opacity-80`}
-                                                >
-                                                    <span className="text-white font-semibold">{desk.seats[5] ? 'Booked' : 'Available'}</span>
-                                                </div>
-                                            </div>
-                                        </>
-                                    ) : (
-                                        // Layout for Desks 1 and 2
-                                        <>
-                                            {/* Seats Above the Table */}
-                                            <div className="flex justify-between">
-                                                <div
-                                                    onClick={() => toggleSeat(desk.id, 0)}
-                                                    className={`flex items-center justify-center p-3 rounded-lg border transition duration-200 cursor-pointer 
-                                                        ${desk.seats[0] ? 'bg-red-500 border-red-600' : 'bg-green-500 border-green-600'}
-                                                        hover:opacity-80`}
-                                                >
-                                                    <span className="text-white font-semibold">{desk.seats[0] ? 'Booked' : 'Available'}</span>
-                                                </div>
-                                                <div
-                                                    onClick={() => toggleSeat(desk.id, 1)}
-                                                    className={`flex items-center justify-center p-3 rounded-lg border transition duration-200 cursor-pointer 
-                                                        ${desk.seats[1] ? 'bg-red-500 border-red-600' : 'bg-green-500 border-green-600'}
-                                                        hover:opacity-80`}
-                                                >
-                                                    <span className="text-white font-semibold">{desk.seats[1] ? 'Booked' : 'Available'}</span>
-                                                </div>
-                                            </div>
-                                            {/* Larger Table Representation */}
-                                            <div className="flex justify-center items-center">
-                                                <div className="w-full h-32 bg-gray-300 rounded-lg shadow-md flex items-center justify-center">
-                                                    <span className="text-center block text-gray-600 font-semibold">Table</span>
-                                                </div>
-                                            </div>
-                                            {/* Seats Below the Table */}
-                                            <div className="flex justify-between">
-                                                <div
-                                                    onClick={() => toggleSeat(desk.id, 2)}
-                                                    className={`flex items-center justify-center p-3 rounded-lg border transition duration-200 cursor-pointer 
-                                                        ${desk.seats[2] ? 'bg-red-500 border-red-600' : 'bg-green-500 border-green-600'}
-                                                        hover:opacity-80`}
-                                                >
-                                                    <span className="text-white font-semibold">{desk.seats[2] ? 'Booked' : 'Available'}</span>
-                                                </div>
-                                                <div
-                                                    onClick={() => toggleSeat(desk.id, 3)}
-                                                    className={`flex items-center justify-center p-3 rounded-lg border transition duration-200 cursor-pointer 
-                                                        ${desk.seats[3] ? 'bg-red-500 border-red-600' : 'bg-green-500 border-green-600'}
-                                                        hover:opacity-80`}
-                                                >
-                                                    <span className="text-white font-semibold">{desk.seats[3] ? 'Booked' : 'Available'}</span>
-                                                </div>
-                                            </div>
-                                        </>
-                                    )}
+                                            ))}
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
                     ))}
+
                 </div>
 
                 {/* Shared Booking Details Section */}
