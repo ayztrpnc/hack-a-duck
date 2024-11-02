@@ -1,5 +1,10 @@
+// import Room from "../components/Room";
+
+import UserDetail from "../components/UserDetail";
+
+
 function Profile() {
-    return <h2>Profile Page - View Your Bookings</h2>;
+    return <UserDetail/>;
 }
 
 export default Profile;
