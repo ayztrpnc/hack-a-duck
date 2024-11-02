@@ -1,10 +1,15 @@
 const express = require('express');
+const cors=require('cors');
 const app = express();
 const PORT = 3000;
 const connection = require("./db")
 
 // Middleware to parse JSON
 app.use(express.json());
+
+app.use(cors({
+    origin: "http://localhost:5173"
+}))
 
 // Start the server
 app.listen(PORT, () => {

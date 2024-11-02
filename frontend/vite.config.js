@@ -7,6 +7,8 @@ export default defineConfig({
   server: {
     proxy: {
         '/api': 'http://localhost:3000', // Redirects '/api' requests to Node backend
+        
+        secure: false,
     },
 },
 })
