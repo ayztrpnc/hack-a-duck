@@ -1,5 +1,7 @@
+import RoomAvailabilityCalendar from '../components/RoomAvailabilityCalendar';
+
 function Calendar() {
-    return <h2>Calendar - View Booked Rooms and Availability</h2>;
+  return <RoomAvailabilityCalendar />;
 }
 
 export default Calendar;
